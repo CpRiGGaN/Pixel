@@ -1,0 +1,876 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>РЕТРОН-83</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: текстовий «робочий стіл» 1983 року. Меню зверху, вікна з подвійною рамкою
+   на дізерованому шейдерному тлі, рядок F-клавіш знизу, як у Norton Commander. */
+:root {
+  --c0: #120a02; --c1: #4a2a06; --c2: #d98a1f; --c3: #ffc857; /* змінюються з JS пружиною */
+  --display: "Press Start 2P", "Courier New", monospace;
+  --mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--c0); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--c0); color: var(--c3);
+  font: 400 15px/1.6 var(--mono);
+  text-shadow: 0 0 5px color-mix(in srgb, var(--c3) 38%, transparent);
+  padding-block: 64px 72px;
+  padding-left: var(--gut-l); padding-right: var(--gut-r);
+  overflow-x: hidden;
+}
+::selection { background: var(--c3); color: var(--c0); text-shadow: none; }
+:focus-visible { outline: 3px solid var(--c3); outline-offset: 2px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; image-rendering: pixelated; }
+main, footer { position: relative; z-index: 1; max-width: 1120px; margin-inline: auto; }
+
+/* ---------- верхнє меню ---------- */
+#bar {
+  position: fixed; z-index: 40; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 24px; height: calc(42px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) var(--gut-r) 0 var(--gut-l);
+  background: color-mix(in srgb, var(--c0) 94%, transparent);
+  border-bottom: 2px solid var(--c2); font-size: 13px;
+}
+#bar a { color: var(--c3); text-decoration: none; }
+#bar .brand { font: 11px var(--display); letter-spacing: .02em; white-space: nowrap; }
+#bar nav { display: flex; gap: 20px; margin-right: auto; }
+#bar nav a { padding: 4px 6px; }
+#bar nav a:hover { background: var(--c3); color: var(--c0); text-shadow: none; }
+#bar .sys { margin-left: auto; display: flex; gap: 18px; color: var(--c2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#bar nav + .sys { margin-left: 0; }
+#progress { position: absolute; left: 0; bottom: -2px; width: 100%; height: 2px; background: var(--c3); transform-origin: 0 50%; transform: scaleX(0); }
+@supports (animation-timeline: scroll()) {
+  #progress { animation: grow linear both; animation-timeline: scroll(root); }
+  @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+/* ---------- hero ---------- */
+.hero { display: grid; gap: 28px; padding-block: 12px 56px; }
+.stage { position: relative; height: clamp(220px, 34vw, 380px); border-block: 2px solid var(--c1); cursor: pointer; }
+#pix { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.cap { position: absolute; left: 0; right: 0; bottom: 6px; display: flex; justify-content: space-between; gap: 12px; padding-inline: 4px; font-size: 11px; color: var(--c2); letter-spacing: .06em; text-transform: uppercase; pointer-events: none; }
+.hero-row { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 32px 48px; align-items: start; }
+.boot, .lede { background: color-mix(in srgb, var(--c0) 84%, transparent); padding: 12px 16px; }
+.boot { margin: 0; font: 12px/1.7 var(--mono); color: var(--c2); min-height: 10.2em; white-space: pre-wrap; }
+.caret { display: inline-block; width: .62em; height: 1.05em; background: var(--c3); vertical-align: -0.18em; animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.lede { margin: 0; font-size: clamp(16px, 1.7vw, 19px); line-height: 1.65; max-width: 38em; text-wrap: pretty; }
+.lede em { font-style: normal; background: var(--c3); color: var(--c0); padding: 0 .3em; text-shadow: none; }
+
+/* ---------- вікна ---------- */
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 52px 36px; }
+.win {
+  position: relative; grid-column: span 12; min-width: 0; scroll-margin-top: 76px;
+  border: 5px double var(--c2); background: color-mix(in srgb, var(--c0) 90%, transparent);
+  padding: 34px 24px 24px; box-shadow: 10px 10px 0 var(--c1);
+}
+.win.w5 { grid-column: span 5; } .win.w7 { grid-column: span 7; }
+.wt {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%); margin: 0;
+  padding: 5px 12px 4px; background: var(--c2); color: var(--c0);
+  font: 400 10px/1.2 var(--display); letter-spacing: .04em; white-space: nowrap; text-shadow: none;
+}
+.win p { margin: 0 0 16px; max-width: 46em; text-wrap: pretty; }
+.hint { font-size: 12px; color: var(--c2); margin: 14px 0 0; }
+@supports (animation-timeline: view()) {
+  .win { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+  @keyframes rise { from { transform: translateY(28px); opacity: .35; } to { transform: none; opacity: 1; } }
+}
+
+/* палітра */
+.pals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pal { display: grid; gap: 7px; text-align: left; padding: 10px; background: var(--c0); border: 2px solid var(--c1); transition: transform .12s steps(2), border-color .12s; }
+.pal:hover { border-color: var(--c2); transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--c1); }
+.pal[aria-pressed="true"] { border-color: var(--c3); box-shadow: 4px 4px 0 var(--c1); }
+.sw { display: flex; height: 16px; }
+.sw i { flex: 1; background: var(--s); }
+.pn { font: 9px/1.3 var(--display); }
+.pd { font-size: 11px; line-height: 1.35; color: var(--c2); }
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); height: 22px; margin-top: 18px; border: 2px solid var(--c2); }
+.strip i:nth-child(1) { background: var(--c0); } .strip i:nth-child(2) { background: var(--c1); }
+.strip i:nth-child(3) { background: var(--c2); } .strip i:nth-child(4) { background: var(--c3); }
+
+/* всередині */
+.tech { display: grid; gap: 14px 20px; margin: 0; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); }
+.tech dt { font: 9px/1.5 var(--display); color: var(--c2); padding-top: 4px; }
+.tech dd { margin: 0; font-size: 13.5px; line-height: 1.55; }
+.tech code { font: inherit; background: var(--c1); padding: 0 .3em; }
+
+/* секвенсор */
+.seq { display: grid; grid-template-columns: minmax(58px, 5.5rem) repeat(16, minmax(0, 1fr)); gap: 4px 3px; align-items: center; }
+.rl { font-size: 11px; color: var(--c2); letter-spacing: .04em; }
+.cell { aspect-ratio: 1 / .9; min-width: 0; padding: 0; background: var(--c0); border: 2px solid var(--c1); }
+.cell.q { border-left-color: var(--c2); }
+.cell.on { background: var(--c2); border-color: var(--c2); }
+.cell.cur { outline: 2px solid var(--c3); outline-offset: 1px; }
+.cell.on.cur { background: var(--c3); }
+.ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; margin-top: 20px; }
+.btn { background: var(--c2); color: var(--c0); border: 0; padding: 9px 16px; font: 10px/1.2 var(--display); letter-spacing: .04em; text-shadow: none; box-shadow: 4px 4px 0 var(--c1); }
+.btn:hover { background: var(--c3); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--c1); }
+.tempo { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--c2); }
+.tempo output { min-width: 3ch; color: var(--c3); font-variant-numeric: tabular-nums; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: clamp(120px, 24vw, 220px); height: 20px; background: transparent; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--c1); }
+input[type=range]::-moz-range-track { height: 4px; background: var(--c1); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 20px; margin-top: -8px; background: var(--c3); border: 0; border-radius: 0; }
+input[type=range]::-moz-range-thumb { width: 14px; height: 20px; background: var(--c3); border: 0; border-radius: 0; }
+.scope-wrap { margin-top: 24px; border: 2px solid var(--c2); background:
+  linear-gradient(var(--c1) 1px, transparent 1px) 0 0 / 100% 25%,
+  linear-gradient(90deg, var(--c1) 1px, transparent 1px) 0 0 / 12.5% 100%, #000; }
+#scope { display: block; width: 100%; height: 150px; }
+
+/* термінал */
+.term { background: #000; border: 2px solid var(--c1); padding: 12px 14px; }
+#out { height: 260px; overflow-y: auto; font-size: 13.5px; line-height: 1.55; overscroll-behavior: contain; }
+.ln { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ln.in { color: var(--c2); } .ln.err { background: var(--c3); color: var(--c0); text-shadow: none; padding: 0 .4em; }
+#prompt { display: flex; align-items: center; gap: 10px; margin-top: 8px; border-top: 1px dashed var(--c1); padding-top: 8px; }
+#prompt label { color: var(--c2); white-space: nowrap; }
+#in { flex: 1; min-width: 0; background: transparent; border: 0; padding: 4px 0; caret-color: var(--c3); }
+#in:focus-visible { outline: none; }
+#prompt:focus-within { border-top-color: var(--c3); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip { background: var(--c0); border: 2px solid var(--c1); padding: 4px 9px; font-size: 12px; }
+.chip:hover { border-color: var(--c3); background: var(--c1); }
+
+/* рядок F-клавіш */
+#fkeys {
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px;
+  padding: 0 var(--gut-r) env(safe-area-inset-bottom, 0px) var(--gut-l); background: var(--c0); border-top: 2px solid var(--c2);
+}
+#fkeys button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 9px 2px; background: var(--c2); color: var(--c0); border: 0; font-size: 12px; font-weight: 600; text-shadow: none; white-space: nowrap; }
+#fkeys button b { background: var(--c0); color: var(--c3); padding: 0 4px; font-weight: 400; }
+#fkeys button:hover { background: var(--c3); }
+#fkeys button:active { background: var(--c1); color: var(--c3); }
+
+footer { padding-block: 72px 8px; font-size: 12px; color: var(--c2); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+
+/* ефекти екрана */
+#crt {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(0, 0, 0, .6) 100%),
+              repeating-linear-gradient(to bottom, rgba(0, 0, 0, .2) 0 1px, transparent 1px 3px);
+  animation: flick .14s steps(2) infinite;
+}
+#crt::after { content: ""; position: absolute; left: 0; right: 0; top: -20vh; height: 20vh; background: linear-gradient(transparent, color-mix(in srgb, var(--c3) 8%, transparent), transparent); animation: roll 8s linear infinite; }
+@keyframes flick { 0% { opacity: .94; } 100% { opacity: 1; } }
+@keyframes roll { to { transform: translateY(130vh); } }
+#cur { position: fixed; left: 0; top: 0; z-index: 90; width: 20px; height: 20px; border: 2px solid var(--c3); pointer-events: none; opacity: 0; will-change: transform; }
+#off { position: fixed; inset: 0; z-index: 100; }
+#off i { position: absolute; left: 0; right: 0; background: #000; height: 0; }
+#off .t { top: 0; } #off .b { bottom: 0; }
+#off .l { top: 50%; height: 4px; margin-top: -2px; background: var(--c3); box-shadow: 0 0 22px 5px var(--c3); transform: scaleX(1); }
+@media (pointer: coarse) { #cur { display: none; } }
+@media (pointer: fine) and (hover: hover) { .stage, .pal, .btn, .chip { cursor: none; } body { cursor: auto; } }
+
+@media (max-width: 880px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .win, .win.w5, .win.w7 { grid-column: auto; }
+  .hero-row { grid-template-columns: minmax(0, 1fr); }
+  #bar nav { display: none; }
+  #bar .sys { margin-left: auto; }
+  #bar .fps { display: none; }
+  .tech { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .tech dd { margin-bottom: 14px; }
+}
+@media (max-width: 520px) {
+  .win { padding: 32px 14px 18px; box-shadow: 6px 6px 0 var(--c1); border-width: 4px; }
+  .seq { grid-template-columns: 52px repeat(16, minmax(0, 1fr)); gap: 3px 2px; }
+  .rl { font-size: 9px; letter-spacing: 0; }
+  .cell { border-width: 1px; }
+  #fkeys button { font-size: 10.5px; gap: 3px; } #fkeys button b { padding: 0 2px; font-size: 9px; }
+  .pals { grid-template-columns: 1fr; }
+  .cap span:last-child { display: none; }
+  .cell { aspect-ratio: 1 / 1.3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  #crt, #crt::after, .caret { animation: none; }
+  .win { animation: none; }
+}
+</style>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="crt" aria-hidden="true"></div>
+
+<header id="bar">
+  <a class="brand" href="#top">РЕТРОН-83</a>
+  <nav aria-label="Розділи">
+    <a href="#palette">Палітра</a><a href="#inside">Усередині</a><a href="#sound">Звук</a><a href="#term">Термінал</a>
+  </nav>
+  <div class="sys"><span id="clock">00:00:00</span><span class="fps" id="fps">-- кадр/с</span></div>
+  <i id="progress"></i>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <h1 class="sr">РЕТРОН-83. Лабораторія пікселя</h1>
+    <div class="stage" id="stage" title="Клацніть, щоб змінити слово">
+      <canvas id="pix" aria-hidden="true"></canvas>
+      <div class="cap"><span id="res">полотно</span><span>клац: наступне слово</span></div>
+    </div>
+    <div class="hero-row">
+      <pre class="boot" id="boot">РЕТРОН-83 BIOS 1.07
+ПЗП ............ 16К  OK
+ВІДЕОПАМ'ЯТЬ ... 64К  OK
+ШЕЙДЕР ......... БАЙЄР 8×8  OK
+ЗВУК ........... 4 ГОЛОСИ  OK
+ГОТОВО.</pre>
+      <p class="lede">Лабораторія пікселя: сторінка, де кожен ефект написано вручну. Частинки малюються прямо в масив пікселів, фон рахує <em>шейдер</em>, музику синтезує браузер, а термінал унизу розуміє Lisp і керує всім разом. Жодної бібліотеки.</p>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="win w5" id="palette">
+      <h2 class="wt">ПАЛІТРА</h2>
+      <p>Чотири кольори на весь екран. Їх читають і CSS, і шейдер, і частинки, а перехід між наборами рахує пружина.</p>
+      <div class="pals" id="pals"></div>
+      <div class="strip" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <p class="hint">Клавіші 1–4 теж працюють.</p>
+    </section>
+
+    <section class="win w7" id="inside">
+      <h2 class="wt">УСЕРЕДИНІ</h2>
+      <dl class="tech">
+        <dt>РЕАКТИВНІСТЬ</dt><dd>Стан сторінки це звичайний об'єкт у <code>Proxy</code>. Ефекти самі запам'ятовують, які поля прочитали, і виконуються знову, коли ті змінюються.</dd>
+        <dt>КОРУТИНИ</dt><dd>Анімації написані як <code>function*</code>. <code>yield 600</code> означає «поспи 600 мс». Один планувальник у кадрі веде їх усі.</dd>
+        <dt>ПРУЖИНИ</dt><dd>Кольори, курсор і понад п'ять тисяч частинок рухає напівнеявний метод Ейлера, а не CSS-переходи.</dd>
+        <dt>ПРОГРАМНИЙ РЕНДЕР</dt><dd>Частинки не елементи DOM. Кожна пишеться як піксель у <code>Uint32Array</code>, а canvas збільшує його без згладжування.</dd>
+        <dt>ШЕЙДЕР</dt><dd>Фон це фрагментний шейдер на чистому WebGL. Він рахує плазму й дізерить її в чотири кольори матрицею Байєра.</dd>
+        <dt>ЗВУК</dt><dd>Меандр із шириною імпульсу 25 % збирається з ряду Фур'є. Шум береться з 15-бітного регістра зсуву, як у 8-бітних приставках.</dd>
+        <dt>LISP</dt><dd>Термінал це інтерпретатор із хвостовою рекурсією. Змінні живуть у ланцюжку прототипів <code>Object.create</code>.</dd>
+      </dl>
+    </section>
+
+    <section class="win" id="sound">
+      <h2 class="wt">ЗВУК</h2>
+      <p>Чотири голоси, шістнадцять кроків. Клацайте по клітинках, щоб переписати ритм. Кік штовхає частинки зі шрифту.</p>
+      <div class="seq" id="seq"></div>
+      <div class="ctrl">
+        <button class="btn" id="play" type="button">ГРАТИ</button>
+        <label class="tempo" for="bpm">ТЕМП <input id="bpm" type="range" min="60" max="180" step="1" value="104"><output id="bpmv" for="bpm">104</output> уд/хв</label>
+      </div>
+      <div class="scope-wrap"><canvas id="scope" aria-label="Осцилограф"></canvas></div>
+    </section>
+
+    <section class="win" id="term">
+      <h2 class="wt">ТЕРМІНАЛ</h2>
+      <div class="term">
+        <div id="out" role="log" aria-live="polite"></div>
+        <form id="prompt" autocomplete="off"><label for="in">λ&gt;</label><input id="in" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Вираз Lisp"></form>
+      </div>
+      <div class="chips" id="chips"></div>
+      <p class="hint">Стрілки вгору й вниз гортають історію. Команди мають і українські, і англійські імена.</p>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <span>РЕТРОН-83 — вигаданий комп'ютер, якого не існувало</span>
+  <span>0 бібліотек JS · 1 файл</span>
+</footer>
+
+<nav id="fkeys" aria-label="Швидкі клавіші">
+  <button type="button" data-k="F1"><b>F1</b>Довідка</button>
+  <button type="button" data-k="F2"><b>F2</b>Палітра</button>
+  <button type="button" data-k="F3"><b>F3</b>Слово</button>
+  <button type="button" data-k="F4"><b>F4</b>Звук</button>
+  <button type="button" data-k="F10"><b>F10</b>Вимк.</button>
+</nav>
+
+<div id="off" hidden aria-hidden="true"><i class="t"></i><i class="b"></i><i class="l"></i></div>
+<div id="cur" aria-hidden="true"></div>
+
+<script>
+'use strict';
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ═══ 1. Реактивність: Proxy + автоматичне відстеження залежностей ═══ */
+const proxies = new WeakMap(), deps = new WeakMap();
+let running = null;
+function track(t, k) {
+  if (!running) return;
+  let m = deps.get(t); if (!m) deps.set(t, m = new Map());
+  let s = m.get(k); if (!s) m.set(k, s = new Set());
+  s.add(running); running.src.add(s);
+}
+function trigger(t, k) { const s = deps.get(t)?.get(k); if (s) for (const e of [...s]) e(); }
+function effect(fn) {
+  const e = () => {
+    for (const s of e.src) s.delete(e); e.src.clear();
+    const prev = running; running = e;
+    try { fn(); } finally { running = prev; }
+  };
+  e.src = new Set(); e(); return e;
+}
+function reactive(o) {
+  if (proxies.has(o)) return proxies.get(o);
+  const p = new Proxy(o, {
+    get(t, k, r) { track(t, k); const v = Reflect.get(t, k, r); return v && typeof v === 'object' ? reactive(v) : v; },
+    set(t, k, v, r) { const old = t[k], ok = Reflect.set(t, k, v, r); if (old !== v) trigger(t, k); return ok; },
+  });
+  proxies.set(o, p); return p;
+}
+
+const row = (...ones) => Array.from({ length: 16 }, (_, i) => ones.includes(i));
+const S = reactive({
+  pal: 0, bpm: 104, playing: false, step: -1, speed: 1, mode: 0, fps: 0, clock: '', res: '',
+  grid: [
+    row(0, 2, 3, 4, 6, 8, 9, 11, 12, 14),   // мелодія
+    row(0, 2, 4, 6, 8, 10, 12, 14, 15),      // бас
+    row(0, 4, 8, 12),                        // кік
+    row(2, 6, 10, 14, 15),                   // хет
+  ],
+});
+
+/* ═══ 2. Корутини: анімація як function*, yield n = пауза в мс ═══ */
+let T = 0;
+const tasks = new Set();
+const go = (genFn) => { const t = { it: genFn(), wake: 0 }; tasks.add(t); return t; };
+function tickTasks() {
+  for (const t of tasks) {
+    if (T < t.wake) continue;
+    let r;
+    try { r = t.it.next(); } catch (e) { tasks.delete(t); console.error(e); continue; }
+    if (r.done) tasks.delete(t);
+    else t.wake = typeof r.value === 'number' ? T + r.value : 0;
+  }
+}
+const ease = { in: u => u * u * u, out: u => 1 - (1 - u) ** 3, io: u => u < .5 ? 4 * u ** 3 : 1 - (-2 * u + 2) ** 3 / 2 };
+function* tween(ms, fn, e = u => u) {
+  const t0 = T;
+  for (;;) { const u = clamp((T - t0) / ms, 0, 1); fn(e(u)); if (u >= 1) return; yield; }
+}
+
+/* ═══ 3. Пружини: колір — це 12 каналів, кожен тягнеться до цілі ═══ */
+const PALS = [
+  { n: 'ЯНТАР',    d: 'монохромний монітор, 1982', c: ['#120a02', '#4a2a06', '#d98a1f', '#ffc857'] },
+  { n: 'ФОСФОР',   d: 'зелений термінал',          c: ['#020d06', '#0c4a22', '#2fbf5b', '#b6ffb0'] },
+  { n: 'ПОРТАТИВ', d: 'чотири відтінки зеленого',  c: ['#0f380f', '#2f6a2f', '#7da10f', '#c4e03a'] },
+  { n: 'ПРАПОР',   d: 'синє і жовте',              c: ['#040b1c', '#0a3a8c', '#2f7bea', '#ffd60a'] },
+];
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+const ch = Array.from({ length: 12 }, () => ({ x: 0, v: 0, t: 0 }));
+let palDirty = true;
+function setPalette(i, snap) {
+  S.pal = i;
+  PALS[i].c.forEach((h, j) => rgb(h).forEach((v, k) => { const s = ch[j * 3 + k]; s.t = v; if (snap) { s.x = v; s.v = 0; } }));
+  palDirty = true;
+}
+const spring = (s, dt, k, c) => { s.v += ((s.t - s.x) * k - s.v * c) * dt; s.x += s.v * dt; };
+const col = j => [0, 1, 2].map(k => clamp(ch[j * 3 + k].x, 0, 1));
+const css = j => `rgb(${col(j).map(v => Math.round(v * 255)).join(',')})`;
+const pack = j => { const [r, g, b] = col(j).map(v => Math.round(v * 255)); return ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; };
+function updatePalette(dt) {
+  if (!palDirty) return;
+  let moving = false;
+  for (const s of ch) { spring(s, dt, 120, 15); if (Math.abs(s.t - s.x) > .0007 || Math.abs(s.v) > .01) moving = true; }
+  if (!moving) for (const s of ch) { s.x = s.t; s.v = 0; }
+  palDirty = moving;
+  const st = document.documentElement.style;
+  for (let j = 0; j < 4; j++) st.setProperty('--c' + j, css(j));
+}
+
+/* ═══ 4. Шейдер: плазма / тунель / обрій + упорядкований дізеринг Байєра ═══ */
+const glc = $('#gl');
+const gl = glc.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
+let U = {};
+const FS = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uRes, uM; uniform float uT, uBeat, uMode;
+uniform vec3 uC0, uC1, uC2, uC3;
+float b2(vec2 q) { return mod(q.x * 2. + q.y * 3., 4.); }
+float bayer(vec2 p) {            // матриця 8x8 з бітового переплетення координат
+  p = floor(mod(p, 8.)); float v = 0., w = 16.;
+  for (int i = 0; i < 3; i++) { v += b2(mod(p, 2.)) * w; p = floor(p / 2.); w /= 4.; }
+  return v / 64.;
+}
+void main() {
+  vec2 fc = gl_FragCoord.xy, uv = fc / uRes; float asp = uRes.x / uRes.y;
+  vec2 p = (uv - .5) * vec2(asp, 1.); float t = uT, v = 0.;
+  if (uMode < .5) {
+    vec2 q = p * 5.;
+    v = sin(q.x + t) + sin(q.y * 1.3 - t * .7) + sin((q.x + q.y) * .8 + t * .4);
+    q += vec2(sin(t * .5 + q.y * .7), cos(t * .4 + q.x * .7)) * 1.2;
+    v += sin(length(q) * 1.6 - t * 1.2);
+    v = v * .125 + .5;
+  } else if (uMode < 1.5) {
+    float r = length(p) + .001, a = atan(p.y, p.x);
+    v = abs(fract(.35 / r + t * .25 + a * .477) * 2. - 1.) * smoothstep(.02, .5, r);
+  } else {
+    float hz = .1;
+    if (p.y < hz) {
+      float y = hz - p.y; vec2 g = vec2(p.x / y * .45, .12 / y + t * .35);
+      vec2 f = abs(fract(g) - .5);
+      v = max(smoothstep(.43, .5, f.x), smoothstep(.43, .5, f.y)) * clamp(y * 6., 0., 1.) + .06;
+    } else {
+      vec2 s = p - vec2(0., .3); float sun = smoothstep(.21, .2, length(s));
+      float cut = s.y < 0. ? step(.45, fract(s.y * 15. + t * .05)) : 1.;
+      v = sun * cut * (.75 + .25 * clamp(.5 - s.y * 2.5, 0., 1.)) + .1 * (1. - clamp((p.y - hz) * 2., 0., 1.));
+    }
+  }
+  vec2 m = (uM - .5) * vec2(asp, 1.);
+  v += .4 * exp(-14. * dot(p - m, p - m));
+  v = clamp(v, 0., 1.) * .46 + uBeat * .16;
+  float l = min(floor(clamp(v, 0., 1.) * 3. + bayer(fc)), 3.);
+  gl_FragColor = vec4(l < .5 ? uC0 : l < 1.5 ? uC1 : l < 2.5 ? uC2 : uC3, 1.);
+}`;
+function initGL() {
+  if (!gl) { glc.remove(); return; }
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw Error(gl.getShaderInfoLog(s)); return s; };
+  try {
+    const pr = gl.createProgram();
+    gl.attachShader(pr, sh(gl.VERTEX_SHADER, 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }'));
+    gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(pr); gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); // один трикутник на весь екран
+    const a = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+    for (const n of ['uRes', 'uM', 'uT', 'uBeat', 'uMode', 'uC0', 'uC1', 'uC2', 'uC3']) U[n] = gl.getUniformLocation(pr, n);
+  } catch (e) { console.error(e); glc.remove(); U = null; return; }
+  sizeGL();
+}
+function sizeGL() {
+  if (!gl || !U) return;
+  glc.width = Math.max(2, Math.ceil(innerWidth / 3)); glc.height = Math.max(2, Math.ceil(innerHeight / 3)); // «піксель» дізера = 3 CSS-пікселі
+  gl.viewport(0, 0, glc.width, glc.height);
+}
+
+/* ═══ 5. Частинки: п'ять тисяч пікселів прямо в Uint32Array ═══ */
+const stage = $('#stage'), pix = $('#pix'), pctx = pix.getContext('2d');
+const N = 5200, WORDS = ['РЕТРОН', '1983', 'ПІКСЕЛЬ', 'ЗВУК', 'LISP'];
+const px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
+const tx = new Float32Array(N), ty = new Float32Array(N), kk = new Float32Array(N), perm = new Uint16Array(N);
+let PW = 0, PH = 0, PS = 4, pimg, pbuf, curWord = WORDS[0], wordIx = 0, beat = 0;
+const pm = { x: -999, y: -999 };
+for (let i = 0; i < N; i++) { perm[i] = i; kk[i] = .035 + Math.random() * .05; }
+for (let i = N - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [perm[i], perm[j]] = [perm[j], perm[i]]; }
+
+function layoutParticles() {
+  const r = stage.getBoundingClientRect();
+  PS = clamp(Math.round(r.width / 260), 2, 5);
+  PW = Math.max(60, Math.floor(r.width / PS)); PH = Math.max(40, Math.floor(r.height / PS));
+  pix.width = PW; pix.height = PH;
+  pimg = pctx.createImageData(PW, PH); pbuf = new Uint32Array(pimg.data.buffer);
+  S.res = `полотно ${PW}×${PH} · частинок ${N}`;
+}
+function sampleWord(word) {
+  const c = document.createElement('canvas'); c.width = PW; c.height = PH;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  let size = PH * .55; g.font = `${size}px "Press Start 2P", monospace`;
+  const w = g.measureText(word).width; if (w > PW * .92) size *= PW * .92 / w;
+  g.font = `${size}px "Press Start 2P", monospace`;
+  g.fillText(word, PW / 2, PH / 2 + size * .04);
+  const d = g.getImageData(0, 0, PW, PH).data, pts = [];
+  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) if (d[(y * PW + x) * 4 + 3] > 110) pts.push(x, y);
+  return pts;
+}
+function setWord(text, quiet) {
+  curWord = text;
+  const pts = sampleWord(text), M = pts.length >> 1; if (!M) return;
+  for (let i = 0; i < N; i++) {
+    const j = M > N ? (perm[i] * M / N) | 0 : perm[i] % M;
+    tx[i] = pts[j * 2]; ty[i] = pts[j * 2 + 1];
+    if (!quiet) { const a = Math.random() * 6.2832, s = 1.5 + Math.random() * 7; vx[i] += Math.cos(a) * s; vy[i] += Math.sin(a) * s; }
+  }
+}
+const nextWord = () => setWord(WORDS[wordIx = (wordIx + 1) % WORDS.length]);
+function stepParticles(dtf) {
+  const damp = Math.pow(.86, dtf), R = PH * .24, R2 = R * R, cx = PW / 2, cy = PH / 2, sc = 1 + beat * .07;
+  for (let i = 0; i < N; i++) {
+    let x = px[i], y = py[i], u = vx[i], v = vy[i];
+    const gx = cx + (tx[i] - cx) * sc, gy = cy + (ty[i] - cy) * sc, k = kk[i] * dtf;
+    u += (gx - x) * k; v += (gy - y) * k;
+    const dx = x - pm.x, dy = y - pm.y, d2 = dx * dx + dy * dy;
+    if (d2 < R2) { const d = Math.sqrt(d2) + .001, f = (1 - d / R) ** 2 * 3.2 * dtf; u += dx / d * f; v += dy / d * f; }
+    u *= damp; v *= damp; x += u * dtf; y += v * dtf;
+    px[i] = x; py[i] = y; vx[i] = u; vy[i] = v;
+  }
+}
+function drawParticles() {
+  pbuf.fill(0);
+  const c1 = pack(1), c2 = pack(2), c3 = pack(3);
+  for (let i = 0; i < N; i++) {          // тінь на піксель униз-вправо
+    const x = px[i] + 1 | 0, y = py[i] + 1 | 0;
+    if (x >= 0 && x < PW && y >= 0 && y < PH) pbuf[y * PW + x] = c1;
+  }
+  for (let i = 0; i < N; i++) {
+    const x = px[i] | 0, y = py[i] | 0;
+    if (x < 0 || x >= PW || y < 0 || y >= PH) continue;
+    const sp = Math.abs(vx[i]) + Math.abs(vy[i]);
+    pbuf[y * PW + x] = sp > 1.6 ? c3 : sp > .5 ? c2 : (i & 7) === 0 ? c2 : c3;
+  }
+  pctx.putImageData(pimg, 0, 0);
+}
+
+/* ═══ 6. Звук: WebAudio-синтезатор + планувальник «двох годинників» ═══ */
+const LEAD = [12, 15, 19, 17, 15, 12, 10, 12, 15, 19, 22, 19, 17, 15, 12, 10];
+const BASS = [-12, -12, -12, -12, -12, -12, -12, -12, -16, -16, -16, -16, -14, -14, -14, -14];
+const hz = s => 220 * 2 ** (s / 12);
+let AC, master, analyser, pulse, noise, timer = 0, nextT = 0, stepI = 0;
+const queue = [];
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  master = AC.createGain(); master.gain.value = .5;
+  analyser = AC.createAnalyser(); analyser.fftSize = 1024;
+  master.connect(analyser); analyser.connect(AC.destination);
+  // меандр 25 %: ряд Фур'є a_n = 2/(nπ)·sin(nπd)
+  const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * .25);
+  pulse = AC.createPeriodicWave(re, im);
+  // шум 15-бітного LFSR, такт кожні 8 семплів
+  const len = AC.sampleRate, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+  let lf = 1;
+  for (let i = 0; i < len; i++) { if (i % 8 === 0) lf = (lf >> 1) | (((lf ^ (lf >> 1)) & 1) << 14); d[i] = lf & 1 ? 1 : -1; }
+  noise = buf;
+}
+function tone(f, t, dur, vol, wave, type) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  if (wave) o.setPeriodicWave(wave); else o.type = type;
+  o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dur + .02);
+}
+function voices(s, t) {
+  const sd = 60 / S.bpm / 4, G = S.grid;
+  if (G[0][s]) tone(hz(LEAD[s]), t, sd * 1.8, .17, pulse);
+  if (G[1][s]) tone(hz(BASS[s]), t, sd * 1.7, .34, null, 'triangle');
+  if (G[2][s]) {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .11);
+    g.gain.setValueAtTime(.9, t); g.gain.exponentialRampToValueAtTime(.0001, t + .2);
+    o.connect(g).connect(master); o.start(t); o.stop(t + .22);
+  }
+  if (G[3][s]) {
+    const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    src.buffer = noise; f.type = 'highpass'; f.frequency.value = 6500;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.2, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
+    src.connect(f).connect(g).connect(master); src.start(t, Math.random()); src.stop(t + .08);
+  }
+}
+function pump() {                        // годинник 1: JS-таймер, дивиться на 140 мс уперед
+  while (nextT < AC.currentTime + .14) {
+    voices(stepI, nextT); queue.push([nextT, stepI]);
+    nextT += 60 / S.bpm / 4; stepI = (stepI + 1) & 15;
+  }
+}
+function play() { initAudio(); AC.resume(); stepI = 0; nextT = AC.currentTime + .06; clearInterval(timer); timer = setInterval(pump, 25); S.playing = true; }
+function stop() { clearInterval(timer); queue.length = 0; S.playing = false; S.step = -1; }
+const toggle = () => (S.playing ? stop() : play());
+function syncUI() {                      // годинник 2: аудіо-час, за яким підсвічуємо кроки
+  if (!AC) return;
+  while (queue.length && queue[0][0] <= AC.currentTime) { const s = queue.shift()[1]; S.step = s; if (S.grid[2][s]) beat = 1; }
+}
+
+/* осцилограф із фосфорним післясвітінням */
+const scope = $('#scope'), sctx = scope.getContext('2d');
+let sdpr = 1;
+const tdata = new Uint8Array(1024);
+function sizeScope() { const r = scope.getBoundingClientRect(); sdpr = Math.min(devicePixelRatio || 1, 2); scope.width = Math.max(2, r.width * sdpr | 0); scope.height = Math.max(2, r.height * sdpr | 0); }
+function drawScope() {
+  const w = scope.width, h = scope.height;
+  sctx.globalCompositeOperation = 'destination-out'; sctx.fillStyle = 'rgba(0,0,0,.3)'; sctx.fillRect(0, 0, w, h);
+  sctx.globalCompositeOperation = 'source-over';
+  if (analyser) analyser.getByteTimeDomainData(tdata); else tdata.fill(128);
+  let o = 1; while (o < 400 && !(tdata[o - 1] < 128 && tdata[o] >= 128)) o++;  // тригер по зростаючому переходу через нуль
+  if (o >= 400) o = 1;
+  sctx.beginPath();
+  for (let i = 0; i < 576; i++) {
+    const x = i / 575 * w, y = h / 2 + (tdata[o + i] - 128) / 128 * h * .46;
+    i ? sctx.lineTo(x, y) : sctx.moveTo(x, y);
+  }
+  sctx.strokeStyle = css(3); sctx.lineWidth = 2 * sdpr; sctx.shadowColor = css(3); sctx.shadowBlur = 8 * sdpr; sctx.stroke();
+  sctx.shadowBlur = 0;
+}
+
+/* ═══ 7. Lisp: ~50 рядків, хвостова рекурсія, області видимості = прототипи ═══ */
+const tokenize = s => (s.match(/"[^"]*"|;[^\n]*|[()']|[^\s()'"]+/g) || []).filter(t => t[0] !== ';');
+function parse(tokens) {
+  const read = () => {
+    if (!tokens.length) throw Error('несподіваний кінець виразу');
+    const t = tokens.shift();
+    if (t === '(') { const l = []; while (tokens[0] !== ')') { if (!tokens.length) throw Error('бракує )'); l.push(read()); } tokens.shift(); return l; }
+    if (t === ')') throw Error('зайва )');
+    if (t === "'") return ['quote', read()];
+    if (t[0] === '"') return { str: t.slice(1, -1) };
+    const n = Number(t); return Number.isNaN(n) ? t : n;
+  };
+  const out = []; while (tokens.length) out.push(read()); return out;
+}
+const G = Object.create(null);
+const def = (names, fn) => [].concat(names).forEach(n => { G[n] = fn; });
+const truthy = v => v !== false && v != null && !(Array.isArray(v) && !v.length);
+let fuel = 0;
+function ev(x, env) {
+  for (;;) {                             // цикл замість рекурсії для хвостових викликів
+    if (--fuel < 0) throw Error('занадто довге обчислення');
+    if (typeof x === 'number') return x;
+    if (typeof x === 'string') {
+      if (x === '#t') return true; if (x === '#f') return false; if (x === 'nil') return [];
+      if (!(x in env)) throw Error('невідомий символ: ' + x);
+      return env[x];
+    }
+    if (x.str !== undefined) return x.str;
+    if (!x.length) return x;
+    const [h, ...a] = x;
+    if (h === 'quote') return a[0];
+    if (h === 'if') { x = truthy(ev(a[0], env)) ? a[1] : a[2]; if (x === undefined) return null; continue; }
+    if (h === 'begin') { for (let i = 0; i < a.length - 1; i++) ev(a[i], env); x = a[a.length - 1]; continue; }
+    if (h === 'lambda' || h === 'λ') return { lam: 1, params: a[0], body: a.slice(1), env };
+    if (h === 'define') {
+      if (Array.isArray(a[0])) { env[a[0][0]] = { lam: 1, params: a[0].slice(1), body: a.slice(1), env }; return a[0][0]; }
+      env[a[0]] = ev(a[1], env); return a[0];
+    }
+    if (h === 'set!') {
+      let e = env; while (e && !Object.hasOwn(e, a[0])) e = Object.getPrototypeOf(e);
+      if (!e) throw Error('невідомий символ: ' + a[0]);
+      e[a[0]] = ev(a[1], env); return null;
+    }
+    const f = ev(h, env), args = a.map(e => ev(e, env));
+    if (f && f.lam) {
+      env = Object.create(f.env);        // новий кадр = новий об'єкт, що наслідує зовнішній
+      f.params.forEach((p, i) => { env[p] = args[i]; });
+      for (let i = 0; i < f.body.length - 1; i++) ev(f.body[i], env);
+      x = f.body[f.body.length - 1]; continue;
+    }
+    if (typeof f !== 'function') throw Error(show(h) + ' не є функцією');
+    return f(...args);
+  }
+}
+const call = (f, args) => {
+  if (f && f.lam) { const e = Object.create(f.env); f.params.forEach((p, i) => { e[p] = args[i]; }); let r; for (const b of f.body) r = ev(b, e); return r; }
+  if (typeof f === 'function') return f(...args);
+  throw Error('не є функцією');
+};
+const show = v => v === true ? '#t' : v === false ? '#f' : v == null ? '' : typeof v === 'number' ? String(+v.toPrecision(12))
+  : Array.isArray(v) ? '(' + v.map(show).join(' ') + ')' : v.lam ? '<λ>' : typeof v === 'function' ? '<вбудована>' : String(v);
+
+def('+', (...a) => a.reduce((x, y) => x + y, 0));
+def('-', (a, ...r) => r.length ? r.reduce((x, y) => x - y, a) : -a);
+def('*', (...a) => a.reduce((x, y) => x * y, 1));
+def('/', (a, ...r) => r.reduce((x, y) => x / y, a));
+def('<', (a, b) => a < b); def('>', (a, b) => a > b); def('<=', (a, b) => a <= b); def('>=', (a, b) => a >= b);
+def('=', (a, b) => a === b);
+def('mod', (a, b) => a % b); def('abs', Math.abs); def('sqrt', Math.sqrt); def('min', Math.min); def('max', Math.max);
+def('expt', (a, b) => a ** b); def(['random', 'випадкове'], n => Math.floor(Math.random() * n));
+def('list', (...a) => a); def('car', l => l[0]); def('cdr', l => l.slice(1)); def('cons', (a, l) => [a, ...l]);
+def('null?', l => Array.isArray(l) && !l.length); def('length', l => l.length); def('append', (...ls) => ls.flat(1));
+def('range', (a, b) => { if (b === undefined) { b = a; a = 0; } return Array.from({ length: Math.max(0, b - a) }, (_, i) => a + i); });
+def('map', (f, l) => l.map(x => call(f, [x]))); def('filter', (f, l) => l.filter(x => truthy(call(f, [x]))));
+
+const PAL_KEYS = ['янтар', 'фосфор', 'портатив', 'прапор'];
+def(['палітра', 'palette'], n => {
+  const i = typeof n === 'number' ? n - 1 : PAL_KEYS.indexOf(String(n).toLowerCase());
+  if (!PALS[i]) throw Error("палітра: 1–4 або 'янтар 'фосфор 'портатив 'прапор");
+  setPalette(i); return PALS[i].n;
+});
+def(['шейдер', 'shader'], n => { if (![1, 2, 3].includes(n)) throw Error('шейдер: 1, 2 або 3'); S.mode = n - 1; return ['плазма', 'тунель', 'обрій'][n - 1]; });
+def(['швидкість', 'speed'], x => { if (typeof x !== 'number') throw Error('швидкість: число від 0 до 6'); S.speed = clamp(x, 0, 6); return S.speed; });
+def(['бпм', 'темп', 'bpm'], n => { if (typeof n !== 'number') throw Error('бпм: число від 60 до 180'); S.bpm = clamp(Math.round(n), 60, 180); return S.bpm; });
+def(['грай', 'play'], () => { if (!S.playing) play(); return 'грає'; });
+def(['стоп', 'stop'], () => { stop(); return 'тиша'; });
+def(['слово', 'word'], w => {
+  if (typeof w === 'number') { wordIx = ((w - 1) % WORDS.length + WORDS.length) % WORDS.length; setWord(WORDS[wordIx]); return WORDS[wordIx]; }
+  const s = String(w).toUpperCase().slice(0, 12); if (!s.trim()) throw Error('слово: порожній рядок'); setWord(s); return s;
+});
+def(['вимкнути', 'poweroff'], () => { go(powerCycle); return 'до побачення…'; });
+def(['очистити', 'clear'], () => { out.textContent = ''; return null; });
+def(['довідка', 'help'], () => {
+  ["(палітра 1-4)  або  (палітра 'прапор)", '(шейдер 1-3)   (швидкість 0-6)   (бпм 60-180)', '(грай)  (стоп)  (слово "ТЕКСТ")  (вимкнути)  (очистити)',
+    'мова: + - * / < > = if define lambda quote begin map filter range', 'англійські імена теж є: palette shader speed bpm play stop word'].forEach(l => print('out', l));
+  return null;
+});
+for (const src of ['(define (fact n) (if (< n 2) 1 (* n (fact (- n 1)))))', '(define (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))', '(define (sq x) (* x x))'])
+  { fuel = 1e5; ev(parse(tokenize(src))[0], G); }
+
+/* термінал */
+const out = $('#out'), inp = $('#in'), hist = []; let hi = 0;
+function print(kind, text) { const d = document.createElement('div'); d.className = 'ln ' + kind; d.textContent = kind === 'in' ? 'λ> ' + text : text; out.append(d); out.scrollTop = out.scrollHeight; }
+function run(src) {
+  print('in', src);
+  try {
+    for (const f of parse(tokenize(src))) { fuel = 4e5; const s = show(ev(f, G)); if (s !== '') print('out', s); }
+  } catch (e) { print('err', e instanceof RangeError ? 'переповнення стека' : e.message); }
+}
+$('#prompt').addEventListener('submit', e => {
+  e.preventDefault(); const v = inp.value.trim(); if (!v) return;
+  hist.push(v); hi = hist.length; inp.value = ''; run(v);
+});
+inp.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' && hi > 0) { inp.value = hist[--hi]; e.preventDefault(); }
+  else if (e.key === 'ArrowDown') { hi = Math.min(hi + 1, hist.length); inp.value = hist[hi] || ''; e.preventDefault(); }
+});
+let typing = false;
+function* autotype(text) {               // підказка «набирає» сама, як у демонстрації
+  if (typing) return; typing = true; inp.value = '';
+  for (const c of text) { inp.value += c; yield 28; }
+  yield 220; inp.value = ''; hist.push(text); hi = hist.length; run(text); typing = false;
+}
+[`(палітра 'прапор)`, '(шейдер 3)', '(швидкість 4)', '(слово "ПРИВІТ")', '(бпм 140)', '(грай)', '(map fact (range 1 8))', '(fib 20)', '(вимкнути)'].forEach(t => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = t;
+  b.onclick = () => { if (REDUCED) run(t); else go(() => autotype(t)); }; $('#chips').append(b);
+});
+print('out', 'РЕТРОН Lisp 1.0');
+print('out', 'Натисніть підказку нижче або введіть (довідка)');
+
+/* ═══ 8. Екран: вимкнення ЕПТ, курсор, меню, годинник ═══ */
+const off = $('#off'), oT = $('.t', off), oB = $('.b', off), oL = $('.l', off);
+function* powerCycle() {
+  off.hidden = false; oT.style.height = oB.style.height = '0'; oL.style.transform = 'scaleX(1)'; oL.style.opacity = 1;
+  yield* tween(340, u => { oT.style.height = oB.style.height = u * 50 + 'vh'; }, ease.in);
+  yield* tween(240, u => { oL.style.transform = `scaleX(${1 - u})`; }, ease.in);
+  oL.style.opacity = 0; yield 650;
+  oL.style.opacity = 1; yield* tween(180, u => { oL.style.transform = `scaleX(${u})`; }, ease.out);
+  oT.style.height = oB.style.height = '50.2vh';
+  yield* tween(420, u => { oT.style.height = oB.style.height = (1 - u) * 50 + 'vh'; oL.style.opacity = 1 - u; }, ease.out);
+  off.hidden = true;
+}
+const GL = '#%&@$*+=?/<>0123456789';
+function* scramble(el) {
+  const t = el.dataset.t, t0 = T;
+  for (;;) {
+    const u = clamp((T - t0) / 650, 0, 1), n = Math.floor(u * t.length); let s = '';
+    for (let i = 0; i < t.length; i++) s += i < n || t[i] === ' ' ? t[i] : GL[Math.random() * GL.length | 0];
+    el.textContent = u >= 1 ? t : s; if (u >= 1) return; yield;
+  }
+}
+function* typeBoot() {
+  const pre = $('#boot'), full = pre.textContent.trim();
+  pre.textContent = ''; const cur = document.createElement('span'); cur.className = 'caret'; pre.append(cur);
+  if (REDUCED) { cur.before(full); return; }
+  yield 250;
+  for (const line of full.split('\n')) {
+    let n = 0; for (const c of line) { cur.before(c); if (++n % 2 === 0) yield; }
+    cur.before('\n'); yield 90;
+  }
+}
+function* cycleWords() { for (;;) { yield 3800; if (!REDUCED && !document.hidden) nextWord(); } }
+
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); if (!REDUCED) go(() => scramble(e.target)); } }), { threshold: .9 });
+document.querySelectorAll('.wt').forEach(el => { el.dataset.t = el.textContent; io.observe(el); });
+
+const fkeys = {
+  F1() { run('(довідка)'); $('#term').scrollIntoView({ block: 'center' }); },
+  F2() { setPalette((S.pal + 1) % PALS.length); },
+  F3() { nextWord(); },
+  F4() { toggle(); },
+  F10() { go(powerCycle); },
+};
+document.querySelectorAll('#fkeys button').forEach(b => b.addEventListener('click', () => fkeys[b.dataset.k]()));
+addEventListener('keydown', e => {
+  if (fkeys[e.key]) { e.preventDefault(); fkeys[e.key](); return; }
+  if (/^[1-4]$/.test(e.key) && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !e.metaKey && !e.ctrlKey) setPalette(+e.key - 1);
+});
+
+/* курсор на пружині */
+const cur = $('#cur'), cp = { x: { x: 0, v: 0, t: 0 }, y: { x: 0, v: 0, t: 0 }, s: { x: 1, v: 0, t: 1 }, seen: false };
+const mouse = { x: .5, y: .5, sx: { x: .5, v: 0, t: .5 }, sy: { x: .5, v: 0, t: .5 } };
+addEventListener('pointermove', e => {
+  cp.x.t = e.clientX; cp.y.t = e.clientY; mouse.sx.t = e.clientX / innerWidth; mouse.sy.t = 1 - e.clientY / innerHeight;
+  if (!cp.seen) { cp.seen = true; cp.x.x = e.clientX; cp.y.x = e.clientY; cur.style.opacity = 1; }
+  cp.s.t = e.target.closest?.('button,a,input,.stage') ? 1.9 : 1;
+  const r = pix.getBoundingClientRect(); pm.x = (e.clientX - r.left) / PS; pm.y = (e.clientY - r.top) / PS;
+}, { passive: true });
+addEventListener('pointerup', e => { if (e.pointerType === 'touch') { pm.x = pm.y = -999; } });
+document.documentElement.addEventListener('pointerleave', () => { pm.x = pm.y = -999; cur.style.opacity = 0; cp.seen = false; });
+stage.addEventListener('click', nextWord);
+
+/* ═══ 9. Головний цикл ═══ */
+let last = 0, shT = 0, fpsAcc = 0, fpsN = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (document.hidden) { last = now; return; }
+  const dt = Math.min((now - (last || now)) / 1000, 1 / 20); last = now; T = now;
+  fpsAcc += dt; fpsN++; if (fpsAcc > .5) { S.fps = Math.round(fpsN / fpsAcc); fpsAcc = fpsN = 0; }
+
+  updatePalette(dt);
+  for (const s of [cp.x, cp.y]) spring(s, dt, 520, 38); spring(cp.s, dt, 420, 30);
+  spring(mouse.sx, dt, 60, 11); spring(mouse.sy, dt, 60, 11);
+  cur.style.transform = `translate(${cp.x.x - 10}px,${cp.y.x - 10}px) scale(${cp.s.x}) rotate(${(cp.s.x - 1) * 50}deg)`;
+  syncUI(); tickTasks();
+  beat -= beat * Math.min(1, dt * 9);
+
+  if (gl && U) {
+    shT += dt * S.speed * (REDUCED ? .15 : 1);
+    gl.uniform2f(U.uRes, glc.width, glc.height); gl.uniform2f(U.uM, mouse.sx.x, mouse.sy.x);
+    gl.uniform1f(U.uT, shT); gl.uniform1f(U.uBeat, beat); gl.uniform1f(U.uMode, S.mode);
+    for (let j = 0; j < 4; j++) gl.uniform3fv(U['uC' + j], col(j));
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  if (PW) { stepParticles(dt * 60); drawParticles(); }
+  drawScope();
+}
+
+/* ═══ 10. Прив'язки до DOM через effect() ═══ */
+const palBox = $('#pals');
+PALS.forEach((p, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pal';
+  b.innerHTML = `<span class="sw">${p.c.map(c => `<i style="--s:${c}"></i>`).join('')}</span><span class="pn">${i + 1} ${p.n}</span><span class="pd">${p.d}</span>`;
+  b.onclick = () => setPalette(i); palBox.append(b);
+  effect(() => b.setAttribute('aria-pressed', S.pal === i));
+});
+const ROWS = ['МЕЛОДІЯ', 'БАС', 'КІК', 'ХЕТ'], seq = $('#seq');
+ROWS.forEach((name, r) => {
+  const l = document.createElement('span'); l.className = 'rl'; l.textContent = name; seq.append(l);
+  for (let s = 0; s < 16; s++) {
+    const c = document.createElement('button'); c.type = 'button'; c.className = 'cell' + (s % 4 === 0 ? ' q' : '');
+    c.setAttribute('aria-label', `${name}, крок ${s + 1}`);
+    c.onclick = () => { S.grid[r][s] = !S.grid[r][s]; };
+    effect(() => { c.classList.toggle('on', S.grid[r][s]); c.setAttribute('aria-pressed', S.grid[r][s]); });
+    effect(() => c.classList.toggle('cur', S.step === s));
+    seq.append(c);
+  }
+});
+const bpm = $('#bpm');
+bpm.addEventListener('input', () => { S.bpm = +bpm.value; });
+effect(() => { bpm.value = S.bpm; $('#bpmv').textContent = S.bpm; });
+effect(() => { $('#play').textContent = S.playing ? 'СТОП' : 'ГРАТИ'; });
+$('#play').addEventListener('click', toggle);
+effect(() => { $('#clock').textContent = S.clock; });
+effect(() => { $('#fps').textContent = S.fps ? S.fps + ' кадр/с' : '-- кадр/с'; });
+effect(() => { $('#res').textContent = S.res; });
+const tickClock = () => { S.clock = new Date().toLocaleTimeString('uk-UA', { hour12: false }); };
+tickClock(); setInterval(tickClock, 1000);
+
+/* ═══ Старт ═══ */
+async function start() {
+  setPalette(0, true); updatePalette(.016);
+  initGL(); sizeScope();
+  go(typeBoot);
+  const fontReady = Promise.race([document.fonts.load('40px "Press Start 2P"', 'РЕТРОН1983ПІКСЕЛЬ'), new Promise(r => setTimeout(r, 1200))]).catch(() => {});
+  await fontReady;
+  layoutParticles(); setWord(curWord, true);
+  for (let i = 0; i < N; i++) { px[i] = tx[i] + (Math.random() - .5) * 26; py[i] = ty[i] + (Math.random() - .5) * 26; }  // стартують розсипом біля літер
+  go(cycleWords);
+  document.fonts?.addEventListener?.('loadingdone', () => { if (PW) setWord(curWord, true); });
+  let rz = 0;
+  addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { sizeGL(); sizeScope(); layoutParticles(); setWord(curWord, true); }); });
+  new ResizeObserver(sizeScope).observe(scope);
+}
+requestAnimationFrame(frame);
+start();
+})();
+</script>
+
+</body></html>
